@@ -1,0 +1,1213 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Dopamine Tracker — Jurnal Fluktuasi Harian</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap');
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg:       #0D0B1A;
+    --surface:  rgba(255,255,255,0.055);
+    --border:   rgba(255,255,255,0.09);
+    --indigo:   #6366F1;
+    --violet:   #8B5CF6;
+    --amber:    #F59E0B;
+    --emerald:  #10B981;
+    --red:      #EF4444;
+    --muted:    #6B7280;
+    --soft:     #A5B4FC;
+    --text:     #F1F5F9;
+    --mono:     'JetBrains Mono', monospace;
+    --sans:     'Inter', system-ui, sans-serif;
+  }
+
+  body {
+    min-height: 100vh;
+    background: var(--bg);
+    background-image:
+      radial-gradient(ellipse 80% 50% at 50% -10%, rgba(99,102,241,0.18) 0%, transparent 70%),
+      radial-gradient(ellipse 60% 40% at 80% 90%, rgba(139,92,246,0.10) 0%, transparent 60%);
+    font-family: var(--sans);
+    color: var(--text);
+    padding-bottom: 100px;
+  }
+
+  /* ── HEADER ── */
+  header {
+    padding: 32px 20px 20px;
+    text-align: center;
+  }
+  .eyebrow {
+    font-size: 10px;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    color: var(--soft);
+    margin-bottom: 8px;
+  }
+  header h1 {
+    font-size: 22px;
+    font-weight: 800;
+    letter-spacing: -0.5px;
+  }
+  .date-label {
+    margin-top: 6px;
+    font-size: 12px;
+    color: var(--soft);
+    opacity: 0.8;
+  }
+
+  /* ── NAV TABS ── */
+  .tabs {
+    display: flex;
+    justify-content: center;
+    gap: 8px;
+    padding: 0 20px 24px;
+  }
+  .tab {
+    padding: 7px 16px;
+    border-radius: 20px;
+    border: 1px solid transparent;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    background: var(--surface);
+    color: var(--soft);
+    transition: background 0.2s, color 0.2s;
+  }
+  .tab.active {
+    background: var(--indigo);
+    color: #fff;
+    border-color: rgba(99,102,241,0.5);
+  }
+
+  /* ── MAIN CONTAINER ── */
+  .main { padding: 0 16px; }
+  .view { display: none; }
+  .view.active { display: block; }
+
+  /* ── CARDS ── */
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 18px;
+    padding: 18px;
+    margin-bottom: 14px;
+  }
+  .card-label {
+    font-size: 10px;
+    letter-spacing: 2.5px;
+    text-transform: uppercase;
+    color: var(--soft);
+    margin-bottom: 14px;
+  }
+
+  /* ── HOURLY TIMELINE ── */
+  .timeline {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    margin-bottom: 14px;
+  }
+  .hour-row {
+    display: flex;
+    align-items: stretch;
+    min-height: 44px;
+    cursor: pointer;
+    border-radius: 12px;
+    transition: background 0.15s;
+    position: relative;
+  }
+  .hour-row:hover { background: rgba(255,255,255,0.04); }
+  .hour-row.has-entry { background: rgba(99,102,241,0.07); }
+  .hour-row.selected { background: rgba(99,102,241,0.16); }
+
+  .hour-pip {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 44px;
+    flex-shrink: 0;
+    padding: 8px 0;
+    position: relative;
+  }
+  .hour-label {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--muted);
+    font-weight: 600;
+    line-height: 1;
+  }
+  .pip-line {
+    flex: 1;
+    width: 1px;
+    background: var(--border);
+    margin-top: 4px;
+  }
+  .pip-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--border);
+    border: 1.5px solid transparent;
+    margin-top: 5px;
+    flex-shrink: 0;
+    transition: background 0.2s, border-color 0.2s;
+  }
+  .has-entry .pip-dot {
+    background: var(--indigo);
+    border-color: rgba(99,102,241,0.4);
+    box-shadow: 0 0 6px rgba(99,102,241,0.5);
+  }
+  .selected .pip-dot {
+    background: var(--violet);
+    border-color: rgba(139,92,246,0.5);
+    box-shadow: 0 0 8px rgba(139,92,246,0.6);
+  }
+
+  .hour-content {
+    flex: 1;
+    padding: 9px 10px 9px 6px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    overflow: hidden;
+  }
+  .hour-empty-hint {
+    font-size: 11px;
+    color: var(--muted);
+    opacity: 0.5;
+    font-style: italic;
+  }
+  .hour-mini-metrics {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+  }
+  .mini-chip {
+    font-size: 11px;
+    font-weight: 700;
+    font-family: var(--mono);
+    border-radius: 6px;
+    padding: 2px 7px;
+    color: #fff;
+    opacity: 0.9;
+  }
+  .hour-note-preview {
+    font-size: 10px;
+    color: var(--muted);
+    font-style: italic;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 100px;
+    margin-left: auto;
+  }
+
+  /* ── CURRENT HOUR BADGE ── */
+  .current-hour-badge {
+    position: absolute;
+    right: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    color: var(--amber);
+    text-transform: uppercase;
+    opacity: 0.85;
+  }
+
+  /* ── FORM PANEL ── */
+  .form-panel {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 18px;
+    padding: 20px;
+    margin-bottom: 14px;
+  }
+  .form-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+  }
+  .form-header h2 {
+    font-size: 15px;
+    font-weight: 700;
+  }
+  .form-hour-badge {
+    background: rgba(99,102,241,0.25);
+    border: 1px solid rgba(99,102,241,0.35);
+    border-radius: 10px;
+    padding: 4px 12px;
+    font-size: 12px;
+    font-family: var(--mono);
+    color: var(--soft);
+    font-weight: 600;
+  }
+
+  /* ── SLIDER ── */
+  .slider-block { margin-bottom: 18px; }
+  .slider-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 4px;
+  }
+  .slider-name {
+    font-size: 13px;
+    font-weight: 600;
+    color: #D1D5DB;
+    letter-spacing: 0.2px;
+  }
+  .slider-val {
+    border-radius: 20px;
+    padding: 2px 10px;
+    font-size: 13px;
+    font-weight: 800;
+    font-family: var(--mono);
+    color: #fff;
+    min-width: 32px;
+    text-align: center;
+  }
+  .slider-desc {
+    font-size: 11px;
+    color: var(--muted);
+    margin-bottom: 7px;
+  }
+  .slider-track {
+    position: relative;
+    height: 6px;
+    border-radius: 99px;
+    background: rgba(255,255,255,0.08);
+  }
+  .slider-fill {
+    position: absolute;
+    left: 0; top: 0;
+    height: 100%;
+    border-radius: 99px;
+    pointer-events: none;
+    transition: width 0.1s;
+  }
+  input[type=range] {
+    position: absolute;
+    top: -7px; left: 0;
+    width: 100%;
+    height: 20px;
+    opacity: 0;
+    cursor: pointer;
+    margin: 0;
+  }
+  .slider-ends {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 4px;
+  }
+  .slider-ends span { font-size: 10px; color: rgba(255,255,255,0.2); }
+
+  textarea.note-input {
+    width: 100%;
+    padding: 10px 14px;
+    border-radius: 12px;
+    border: 1px solid var(--border);
+    background: rgba(255,255,255,0.04);
+    color: var(--text);
+    font-size: 13px;
+    resize: none;
+    outline: none;
+    font-family: var(--sans);
+    margin-top: 4px;
+    transition: border-color 0.2s;
+  }
+  textarea.note-input:focus { border-color: rgba(99,102,241,0.5); }
+  textarea.note-input::placeholder { color: rgba(255,255,255,0.2); }
+
+  /* ── RADAR ── */
+  .radar-wrap {
+    display: flex;
+    justify-content: center;
+    margin: 16px 0;
+  }
+
+  /* ── SAVE BUTTON ── */
+  .btn-save {
+    width: 100%;
+    padding: 14px;
+    border-radius: 14px;
+    border: none;
+    background: linear-gradient(135deg, var(--indigo), var(--violet));
+    color: #fff;
+    font-size: 14px;
+    font-weight: 700;
+    cursor: pointer;
+    font-family: var(--sans);
+    letter-spacing: 0.3px;
+    box-shadow: 0 4px 20px rgba(99,102,241,0.35);
+    transition: opacity 0.2s, transform 0.1s;
+  }
+  .btn-save:hover { opacity: 0.92; }
+  .btn-save:active { transform: scale(0.98); }
+
+  .btn-delete {
+    width: 100%;
+    margin-top: 8px;
+    padding: 10px;
+    border-radius: 12px;
+    border: 1px solid rgba(239,68,68,0.3);
+    background: rgba(239,68,68,0.08);
+    color: #FCA5A5;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    font-family: var(--sans);
+    transition: background 0.2s;
+  }
+  .btn-delete:hover { background: rgba(239,68,68,0.15); }
+
+  /* ── HISTORY VIEW ── */
+  .history-entry {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 16px;
+    margin-bottom: 10px;
+  }
+  .history-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+  }
+  .history-time {
+    font-family: var(--mono);
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--soft);
+  }
+  .history-date { font-size: 11px; color: var(--muted); }
+  .metrics-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+  }
+  .metric-cell {
+    background: rgba(255,255,255,0.04);
+    border-radius: 10px;
+    padding: 9px 11px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .metric-cell-right {
+    margin-left: auto;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 2px;
+  }
+  .bar-mini {
+    width: 3px;
+    height: 26px;
+    border-radius: 3px;
+    background: rgba(255,255,255,0.06);
+    position: relative;
+    overflow: hidden;
+  }
+  .bar-fill {
+    position: absolute;
+    bottom: 0;
+    width: 100%;
+    border-radius: 3px;
+  }
+  .note-preview {
+    margin-top: 10px;
+    font-size: 12px;
+    color: var(--muted);
+    font-style: italic;
+    border-top: 1px solid var(--border);
+    padding-top: 8px;
+  }
+
+  /* ── CHART VIEW ── */
+  .stat-row {
+    display: flex;
+    justify-content: space-around;
+    padding: 4px 0;
+  }
+  .stat-item { text-align: center; }
+  .stat-val {
+    font-size: 24px;
+    font-weight: 800;
+    font-family: var(--mono);
+    line-height: 1.1;
+  }
+  .stat-lbl { font-size: 10px; color: var(--muted); margin-top: 2px; }
+
+  .sparkline-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 16px;
+    margin-bottom: 10px;
+  }
+  .sparkline-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+  }
+  .sparkline-name { font-size: 13px; font-weight: 600; }
+  .sparkline-avg { font-size: 20px; font-weight: 800; font-family: var(--mono); }
+  .sparkline-minmax {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 5px;
+    font-size: 10px;
+    color: var(--muted);
+    font-family: var(--mono);
+  }
+
+  /* ── EMPTY STATE ── */
+  .empty {
+    text-align: center;
+    padding: 60px 20px;
+    color: var(--muted);
+  }
+  .empty-icon { font-size: 40px; margin-bottom: 12px; }
+  .empty p { font-size: 13px; line-height: 1.6; }
+
+  /* ── TOAST ── */
+  #toast {
+    position: fixed;
+    bottom: 24px;
+    left: 50%;
+    transform: translateX(-50%) translateY(20px);
+    background: rgba(99,102,241,0.95);
+    color: #fff;
+    padding: 10px 22px;
+    border-radius: 20px;
+    font-size: 13px;
+    font-weight: 600;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.3s, transform 0.3s;
+    white-space: nowrap;
+    z-index: 999;
+    backdrop-filter: blur(10px);
+  }
+  #toast.show {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+
+  /* ── TODAY BANNER ── */
+  .today-stats {
+    background: linear-gradient(135deg, rgba(99,102,241,0.12), rgba(139,92,246,0.08));
+    border: 1px solid rgba(99,102,241,0.2);
+    border-radius: 16px;
+    padding: 16px;
+    margin-bottom: 14px;
+  }
+  .today-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin-top: 10px;
+  }
+  .today-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .today-val {
+    font-size: 18px;
+    font-weight: 800;
+    font-family: var(--mono);
+    line-height: 1;
+  }
+  .today-metric-name { font-size: 10px; color: var(--muted); }
+
+  @media (prefers-reduced-motion: reduce) {
+    * { transition: none !important; animation: none !important; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="eyebrow">Dopamine Tracker</div>
+  <h1>Jurnal Fluktuasi Harian</h1>
+  <p class="date-label" id="headerDate"></p>
+</header>
+
+<div class="tabs">
+  <button class="tab active" onclick="switchView('log')">✏️ Catat</button>
+  <button class="tab" onclick="switchView('history')">📋 Riwayat</button>
+  <button class="tab" onclick="switchView('chart')">📊 Grafik</button>
+</div>
+
+<div class="main">
+
+  <!-- ────────── LOG VIEW ────────── -->
+  <div id="view-log" class="view active">
+
+    <!-- Today summary banner -->
+    <div class="today-stats" id="todayBanner" style="display:none">
+      <div class="card-label" id="todayBannerLabel">Hari ini</div>
+      <div class="today-grid" id="todayGrid"></div>
+    </div>
+
+    <!-- Timeline -->
+    <div class="card">
+      <div class="card-label">Pilih Jam &mdash; Ketuk untuk mencatat</div>
+      <div class="timeline" id="timeline"></div>
+    </div>
+
+    <!-- Form panel (hidden until hour selected) -->
+    <div class="form-panel" id="formPanel" style="display:none">
+      <div class="form-header">
+        <h2>✏️ Catat <span id="formHourTitle"></span></h2>
+        <span class="form-hour-badge" id="formHourBadge"></span>
+      </div>
+
+      <div id="sliders"></div>
+
+      <textarea class="note-input" id="noteInput" rows="2" placeholder="Catatan tambahan... (opsional)"></textarea>
+
+      <div class="radar-wrap">
+        <canvas id="radarCanvas" width="140" height="140"></canvas>
+      </div>
+
+      <button class="btn-save" onclick="saveEntry()">Simpan Catatan</button>
+      <button class="btn-delete" id="btnDelete" style="display:none" onclick="deleteEntry()">🗑 Hapus catatan jam ini</button>
+    </div>
+
+  </div>
+
+  <!-- ────────── HISTORY VIEW ────────── -->
+  <div id="view-history" class="view">
+    <div id="historyList"></div>
+  </div>
+
+  <!-- ────────── CHART VIEW ────────── -->
+  <div id="view-chart" class="view">
+    <div id="chartContent"></div>
+  </div>
+
+</div>
+
+<div id="toast"></div>
+
+<script>
+// ── CONFIG ──────────────────────────────────────────────────────────────
+const METRICS = [
+  { key:"energy",     label:"Energi",   emoji:"⚡", color:"#F59E0B", desc:"Seberapa bertenaga kamu?" },
+  { key:"motivation", label:"Motivasi", emoji:"🎯", color:"#6366F1", desc:"Dorongan untuk memulai/menyelesaikan sesuatu" },
+  { key:"mood",       label:"Mood",     emoji:"😊", color:"#10B981", desc:"Perasaan umum saat ini" },
+  { key:"craving",    label:"Craving",  emoji:"🔁", color:"#EF4444", desc:"Dorongan mencari stimulasi (HP, makan, dll)" },
+];
+
+const STORAGE_KEY = "dopamine_tracker_v2";
+
+// ── STATE ─────────────────────────────────────────────────────────────
+// entries: { "2025-06-10": { "08": { energy:7, motivation:5, mood:6, craving:4, note:"..." }, ... }, ... }
+let data = loadData();
+let selectedHour = null; // "08", "14", etc.
+let currentValues = { energy:5, motivation:5, mood:5, craving:5 };
+
+// ── PERSISTENCE ───────────────────────────────────────────────────────
+function loadData() {
+  try { return JSON.parse(localStorage.getItem(STORAGE_KEY)) || {}; }
+  catch { return {}; }
+}
+function saveData() {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+}
+
+// ── DATE HELPERS ──────────────────────────────────────────────────────
+function todayKey() {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
+}
+function todayDisplay() {
+  return new Date().toLocaleDateString("id-ID", { weekday:"long", day:"numeric", month:"long", year:"numeric" });
+}
+function currentHour() {
+  return String(new Date().getHours()).padStart(2,"0");
+}
+function hourLabel(h) { return `${h}:00`; }
+
+// ── INIT ─────────────────────────────────────────────────────────────
+document.getElementById("headerDate").textContent = todayDisplay();
+renderTimeline();
+renderTodayBanner();
+
+// ── TABS ─────────────────────────────────────────────────────────────
+function switchView(v) {
+  document.querySelectorAll(".view").forEach(el => el.classList.remove("active"));
+  document.querySelectorAll(".tab").forEach(el => el.classList.remove("active"));
+  document.getElementById(`view-${v}`).classList.add("active");
+  event.currentTarget.classList.add("active");
+  if (v === "history") renderHistory();
+  if (v === "chart") renderChart();
+}
+
+// ── TIMELINE ─────────────────────────────────────────────────────────
+function renderTimeline() {
+  const container = document.getElementById("timeline");
+  container.innerHTML = "";
+  const todayData = data[todayKey()] || {};
+  const curH = currentHour();
+
+  for (let i = 0; i < 24; i++) {
+    const h = String(i).padStart(2,"0");
+    const entry = todayData[h];
+    const isCurrent = h === curH;
+    const isSelected = h === selectedHour;
+
+    const row = document.createElement("div");
+    row.className = "hour-row" + (entry ? " has-entry" : "") + (isSelected ? " selected" : "");
+    row.onclick = () => selectHour(h);
+
+    // pip
+    const pip = document.createElement("div");
+    pip.className = "hour-pip";
+    pip.innerHTML = `<span class="hour-label">${hourLabel(h)}</span><div class="pip-line"></div><div class="pip-dot"></div>`;
+
+    // content
+    const content = document.createElement("div");
+    content.className = "hour-content";
+
+    if (entry) {
+      const chips = METRICS.map(m =>
+        `<span class="mini-chip" style="background:${m.color}20;color:${m.color}">${m.emoji}${entry[m.key]}</span>`
+      ).join("");
+      content.innerHTML = `<div class="hour-mini-metrics">${chips}</div>`;
+      if (entry.note) {
+        content.innerHTML += `<div class="hour-note-preview">💬 ${entry.note}</div>`;
+      }
+    } else {
+      content.innerHTML = `<span class="hour-empty-hint">${isCurrent ? "Sekarang — ketuk untuk catat" : "Belum ada catatan"}</span>`;
+    }
+
+    if (isCurrent) {
+      const badge = document.createElement("span");
+      badge.className = "current-hour-badge";
+      badge.textContent = "Sekarang";
+      row.appendChild(badge);
+    }
+
+    row.appendChild(pip);
+    row.appendChild(content);
+    container.appendChild(row);
+  }
+
+  // Scroll to current hour
+  const rows = container.querySelectorAll(".hour-row");
+  const curIndex = parseInt(curH);
+  if (rows[curIndex]) {
+    setTimeout(() => rows[curIndex].scrollIntoView({ block:"center", behavior:"smooth" }), 100);
+  }
+}
+
+// ── SELECT HOUR ───────────────────────────────────────────────────────
+function selectHour(h) {
+  selectedHour = h;
+  const todayData = data[todayKey()] || {};
+  const existing = todayData[h];
+
+  if (existing) {
+    currentValues = { energy: existing.energy, motivation: existing.motivation, mood: existing.mood, craving: existing.craving };
+    document.getElementById("noteInput").value = existing.note || "";
+  } else {
+    currentValues = { energy:5, motivation:5, mood:5, craving:5 };
+    document.getElementById("noteInput").value = "";
+  }
+
+  renderFormPanel(h, !!existing);
+  renderTimeline();
+
+  // Scroll form into view
+  setTimeout(() => document.getElementById("formPanel").scrollIntoView({ behavior:"smooth", block:"start" }), 50);
+}
+
+function renderFormPanel(h, hasEntry) {
+  document.getElementById("formPanel").style.display = "block";
+  document.getElementById("formHourTitle").textContent = hourLabel(h);
+  document.getElementById("formHourBadge").textContent = hourLabel(h);
+  document.getElementById("btnDelete").style.display = hasEntry ? "block" : "none";
+  renderSliders();
+  drawRadar();
+}
+
+// ── SLIDERS ───────────────────────────────────────────────────────────
+function renderSliders() {
+  const container = document.getElementById("sliders");
+  container.innerHTML = "";
+  METRICS.forEach(m => {
+    const val = currentValues[m.key];
+    const pct = ((val - 1) / 9) * 100;
+    const block = document.createElement("div");
+    block.className = "slider-block";
+    block.innerHTML = `
+      <div class="slider-top">
+        <span class="slider-name">${m.emoji} ${m.label}</span>
+        <span class="slider-val" id="val-${m.key}" style="background:${m.color}">${val}</span>
+      </div>
+      <p class="slider-desc">${m.desc}</p>
+      <div class="slider-track">
+        <div class="slider-fill" id="fill-${m.key}"
+          style="width:${pct}%;background:linear-gradient(90deg,rgba(255,255,255,0.05),${m.color})"></div>
+        <input type="range" min="1" max="10" value="${val}"
+          oninput="updateSlider('${m.key}',this.value,'${m.color}')" />
+      </div>
+      <div class="slider-ends"><span>Rendah</span><span>Tinggi</span></div>
+    `;
+    container.appendChild(block);
+  });
+}
+
+function updateSlider(key, val, color) {
+  val = Number(val);
+  currentValues[key] = val;
+  document.getElementById(`val-${key}`).textContent = val;
+  const pct = ((val - 1) / 9) * 100;
+  document.getElementById(`fill-${key}`).style.width = pct + "%";
+  drawRadar();
+}
+
+// ── RADAR CANVAS ──────────────────────────────────────────────────────
+function drawRadar() {
+  const canvas = document.getElementById("radarCanvas");
+  if (!canvas) return;
+  const ctx = canvas.getContext("2d");
+  const size = 140, cx = 70, cy = 70, r = 48;
+  const n = METRICS.length;
+  ctx.clearRect(0, 0, size, size);
+
+  // Grid
+  [0.25, 0.5, 0.75, 1].forEach(s => {
+    ctx.beginPath();
+    METRICS.forEach((_, i) => {
+      const a = (Math.PI * 2 * i / n) - Math.PI / 2;
+      const x = cx + s * r * Math.cos(a), y = cy + s * r * Math.sin(a);
+      i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+    });
+    ctx.closePath();
+    ctx.strokeStyle = "rgba(255,255,255,0.07)";
+    ctx.lineWidth = 0.8;
+    ctx.stroke();
+  });
+
+  // Axes
+  METRICS.forEach((_, i) => {
+    const a = (Math.PI * 2 * i / n) - Math.PI / 2;
+    ctx.beginPath();
+    ctx.moveTo(cx, cy);
+    ctx.lineTo(cx + r * Math.cos(a), cy + r * Math.sin(a));
+    ctx.strokeStyle = "rgba(255,255,255,0.07)";
+    ctx.lineWidth = 0.8;
+    ctx.stroke();
+  });
+
+  // Data polygon
+  const pts = METRICS.map((m, i) => {
+    const a = (Math.PI * 2 * i / n) - Math.PI / 2;
+    const v = (currentValues[m.key] / 10) * r;
+    return { x: cx + v * Math.cos(a), y: cy + v * Math.sin(a) };
+  });
+  ctx.beginPath();
+  pts.forEach((p, i) => i === 0 ? ctx.moveTo(p.x, p.y) : ctx.lineTo(p.x, p.y));
+  ctx.closePath();
+  ctx.fillStyle = "rgba(99,102,241,0.15)";
+  ctx.fill();
+  ctx.strokeStyle = "#6366F1";
+  ctx.lineWidth = 1.5;
+  ctx.stroke();
+
+  // Dots
+  pts.forEach((p, i) => {
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, 3, 0, Math.PI * 2);
+    ctx.fillStyle = METRICS[i].color;
+    ctx.fill();
+  });
+
+  // Labels
+  METRICS.forEach((m, i) => {
+    const a = (Math.PI * 2 * i / n) - Math.PI / 2;
+    const lx = cx + (r + 14) * Math.cos(a);
+    const ly = cy + (r + 14) * Math.sin(a);
+    ctx.font = "12px sans-serif";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillText(m.emoji, lx, ly);
+  });
+}
+
+// ── SAVE / DELETE ─────────────────────────────────────────────────────
+function saveEntry() {
+  if (!selectedHour) return;
+  const dk = todayKey();
+  if (!data[dk]) data[dk] = {};
+  data[dk][selectedHour] = {
+    ...currentValues,
+    note: document.getElementById("noteInput").value.trim(),
+    savedAt: new Date().toISOString()
+  };
+  saveData();
+  renderTimeline();
+  renderTodayBanner();
+  document.getElementById("btnDelete").style.display = "block";
+  showToast(`✅ Catatan jam ${hourLabel(selectedHour)} disimpan`);
+}
+
+function deleteEntry() {
+  if (!selectedHour) return;
+  const dk = todayKey();
+  if (data[dk]) {
+    delete data[dk][selectedHour];
+    if (Object.keys(data[dk]).length === 0) delete data[dk];
+  }
+  saveData();
+  selectedHour = null;
+  document.getElementById("formPanel").style.display = "none";
+  renderTimeline();
+  renderTodayBanner();
+  showToast("🗑 Catatan dihapus");
+}
+
+// ── TODAY BANNER ──────────────────────────────────────────────────────
+function renderTodayBanner() {
+  const dk = todayKey();
+  const todayData = data[dk] || {};
+  const entries = Object.values(todayData);
+  const banner = document.getElementById("todayBanner");
+
+  if (entries.length === 0) { banner.style.display = "none"; return; }
+
+  banner.style.display = "block";
+  document.getElementById("todayBannerLabel").textContent = `Hari ini · ${entries.length} catatan`;
+
+  const grid = document.getElementById("todayGrid");
+  grid.innerHTML = METRICS.map(m => {
+    const avg = (entries.reduce((s,e) => s + e[m.key], 0) / entries.length).toFixed(1);
+    return `<div class="today-item">
+      <span style="font-size:18px">${m.emoji}</span>
+      <div>
+        <div class="today-metric-name">${m.label}</div>
+        <div class="today-val" style="color:${m.color}">${avg}</div>
+      </div>
+    </div>`;
+  }).join("");
+}
+
+// ── HISTORY VIEW ──────────────────────────────────────────────────────
+function renderHistory() {
+  const container = document.getElementById("historyList");
+  container.innerHTML = "";
+
+  // Gather all entries sorted by date desc, hour desc
+  const allDays = Object.keys(data).sort().reverse();
+  if (allDays.length === 0) {
+    container.innerHTML = `<div class="empty"><div class="empty-icon">📭</div><p>Belum ada catatan.<br>Mulai catat dari tab ✏️ Catat!</p></div>`;
+    return;
+  }
+
+  allDays.forEach(dk => {
+    const dayData = data[dk];
+    const hours = Object.keys(dayData).sort().reverse();
+    if (hours.length === 0) return;
+
+    // Day separator
+    const sep = document.createElement("div");
+    sep.style.cssText = "font-size:11px;color:#6B7280;letter-spacing:2px;text-transform:uppercase;margin:16px 0 8px;padding-left:4px";
+    sep.textContent = formatDateKey(dk);
+    container.appendChild(sep);
+
+    hours.forEach(h => {
+      const e = dayData[h];
+      const div = document.createElement("div");
+      div.className = "history-entry";
+      div.innerHTML = `
+        <div class="history-header">
+          <span class="history-time">${hourLabel(h)}</span>
+          <span class="history-date">${formatDateKey(dk)}</span>
+        </div>
+        <div class="metrics-grid">
+          ${METRICS.map(m => `
+            <div class="metric-cell">
+              <span style="font-size:18px">${m.emoji}</span>
+              <div>
+                <div style="font-size:10px;color:#9CA3AF">${m.label}</div>
+                <div style="font-size:17px;font-weight:800;color:${m.color};font-family:var(--mono)">${e[m.key]}</div>
+              </div>
+              <div class="metric-cell-right">
+                <div class="bar-mini">
+                  <div class="bar-fill" style="height:${(e[m.key]/10)*100}%;background:${m.color}"></div>
+                </div>
+              </div>
+            </div>`).join("")}
+        </div>
+        ${e.note ? `<div class="note-preview">💬 ${e.note}</div>` : ""}
+      `;
+      container.appendChild(div);
+    });
+  });
+}
+
+function formatDateKey(dk) {
+  const [y,mo,d] = dk.split("-");
+  return new Date(y,mo-1,d).toLocaleDateString("id-ID",{weekday:"long",day:"numeric",month:"long",year:"numeric"});
+}
+
+// ── CHART VIEW ────────────────────────────────────────────────────────
+function renderChart() {
+  const container = document.getElementById("chartContent");
+  container.innerHTML = "";
+
+  const allEntries = [];
+  Object.keys(data).sort().forEach(dk => {
+    Object.keys(data[dk]).sort().forEach(h => {
+      allEntries.push({ dk, h, ...data[dk][h] });
+    });
+  });
+
+  if (allEntries.length < 2) {
+    container.innerHTML = `<div class="empty"><div class="empty-icon">📈</div><p>Butuh minimal 2 catatan<br>untuk melihat grafik tren.</p></div>`;
+    return;
+  }
+
+  const avg = key => (allEntries.reduce((s,e) => s + e[key], 0) / allEntries.length).toFixed(1);
+
+  // Overall avg card
+  const avgCard = document.createElement("div");
+  avgCard.className = "card";
+  avgCard.innerHTML = `
+    <div class="card-label">Rata-rata Keseluruhan · ${allEntries.length} catatan</div>
+    <div class="stat-row">
+      ${METRICS.map(m => `
+        <div class="stat-item">
+          <div style="font-size:20px">${m.emoji}</div>
+          <div class="stat-val" style="color:${m.color}">${avg(m.key)}</div>
+          <div class="stat-lbl">${m.label}</div>
+        </div>`).join("")}
+    </div>`;
+  container.appendChild(avgCard);
+
+  // Sparklines per metric
+  METRICS.forEach(m => {
+    const card = document.createElement("div");
+    card.className = "sparkline-card";
+    const vals = allEntries.map(e => e[m.key]);
+    const mn = Math.min(...vals), mx = Math.max(...vals);
+    card.innerHTML = `
+      <div class="sparkline-top">
+        <span class="sparkline-name">${m.emoji} ${m.label}</span>
+        <span class="sparkline-avg" style="color:${m.color}">${avg(m.key)}</span>
+      </div>
+      <canvas id="spark-${m.key}" height="36" style="width:100%;display:block"></canvas>
+      <div class="sparkline-minmax">
+        <span>Min: ${mn}</span><span>Max: ${mx}</span>
+      </div>`;
+    container.appendChild(card);
+
+    requestAnimationFrame(() => drawSparkline(`spark-${m.key}`, vals, m.color));
+  });
+
+  // Radar avg
+  const radarCard = document.createElement("div");
+  radarCard.className = "card";
+  radarCard.style.textAlign = "center";
+  radarCard.innerHTML = `
+    <div class="card-label">Profil Rata-rata</div>
+    <div style="display:flex;justify-content:center">
+      <canvas id="radarAvg" width="140" height="140"></canvas>
+    </div>`;
+  container.appendChild(radarCard);
+
+  requestAnimationFrame(() => {
+    const saved = { ...currentValues };
+    METRICS.forEach(m => { currentValues[m.key] = parseFloat(avg(m.key)); });
+    const origCanvas = document.getElementById("radarCanvas");
+    // temp swap
+    const orig = document.getElementById("radarCanvas");
+    const tempId = "radarCanvas";
+    document.getElementById("radarCanvas") && (document.getElementById("radarCanvas").id = "_tmp");
+    document.getElementById("radarAvg").id = "radarCanvas";
+    drawRadar();
+    document.getElementById("radarCanvas").id = "radarAvg";
+    if (document.getElementById("_tmp")) document.getElementById("_tmp").id = "radarCanvas";
+    currentValues = saved;
+  });
+}
+
+function drawSparkline(canvasId, vals, color) {
+  const canvas = document.getElementById(canvasId);
+  if (!canvas) return;
+  canvas.width = canvas.offsetWidth || 300;
+  const ctx = canvas.getContext("2d");
+  const w = canvas.width, h = canvas.height;
+  const mn = 1, mx = 10;
+  ctx.clearRect(0, 0, w, h);
+
+  // Fill area
+  ctx.beginPath();
+  vals.forEach((v, i) => {
+    const x = (i / (vals.length - 1)) * w;
+    const y = h - ((v - mn) / (mx - mn)) * h;
+    i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+  });
+  ctx.lineTo(w, h); ctx.lineTo(0, h); ctx.closePath();
+  ctx.fillStyle = color + "22";
+  ctx.fill();
+
+  // Line
+  ctx.beginPath();
+  vals.forEach((v, i) => {
+    const x = (i / (vals.length - 1)) * w;
+    const y = h - ((v - mn) / (mx - mn)) * h;
+    i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+  });
+  ctx.strokeStyle = color;
+  ctx.lineWidth = 1.8;
+  ctx.lineJoin = "round";
+  ctx.lineCap = "round";
+  ctx.stroke();
+
+  // Last dot
+  const lx = w, ly = h - ((vals[vals.length-1] - mn) / (mx - mn)) * h;
+  ctx.beginPath();
+  ctx.arc(lx - 1, ly, 3, 0, Math.PI*2);
+  ctx.fillStyle = color;
+  ctx.fill();
+}
+
+// ── TOAST ─────────────────────────────────────────────────────────────
+function showToast(msg) {
+  const t = document.getElementById("toast");
+  t.textContent = msg;
+  t.classList.add("show");
+  setTimeout(() => t.classList.remove("show"), 2500);
+}
+
+// ── RADAR FOR CHART (standalone draw) ─────────────────────────────────
+function drawRadarOnCanvas(canvasId, values) {
+  const canvas = document.getElementById(canvasId);
+  if (!canvas) return;
+  const ctx = canvas.getContext("2d");
+  const size = 140, cx = 70, cy = 70, r = 48;
+  const n = METRICS.length;
+  ctx.clearRect(0, 0, size, size);
+
+  [0.25,0.5,0.75,1].forEach(s => {
+    ctx.beginPath();
+    METRICS.forEach((_,i) => {
+      const a = (Math.PI*2*i/n)-Math.PI/2;
+      const x = cx+s*r*Math.cos(a), y = cy+s*r*Math.sin(a);
+      i===0?ctx.moveTo(x,y):ctx.lineTo(x,y);
+    });
+    ctx.closePath();
+    ctx.strokeStyle="rgba(255,255,255,0.07)"; ctx.lineWidth=0.8; ctx.stroke();
+  });
+  METRICS.forEach((_,i) => {
+    const a=(Math.PI*2*i/n)-Math.PI/2;
+    ctx.beginPath(); ctx.moveTo(cx,cy); ctx.lineTo(cx+r*Math.cos(a),cy+r*Math.sin(a));
+    ctx.strokeStyle="rgba(255,255,255,0.07)"; ctx.lineWidth=0.8; ctx.stroke();
+  });
+  const pts = METRICS.map((m,i) => {
+    const a=(Math.PI*2*i/n)-Math.PI/2;
+    const v=(values[m.key]/10)*r;
+    return {x:cx+v*Math.cos(a),y:cy+v*Math.sin(a)};
+  });
+  ctx.beginPath();
+  pts.forEach((p,i)=>i===0?ctx.moveTo(p.x,p.y):ctx.lineTo(p.x,p.y));
+  ctx.closePath();
+  ctx.fillStyle="rgba(99,102,241,0.15)"; ctx.fill();
+  ctx.strokeStyle="#6366F1"; ctx.lineWidth=1.5; ctx.stroke();
+  pts.forEach((p,i)=>{
+    ctx.beginPath(); ctx.arc(p.x,p.y,3,0,Math.PI*2);
+    ctx.fillStyle=METRICS[i].color; ctx.fill();
+  });
+  METRICS.forEach((m,i)=>{
+    const a=(Math.PI*2*i/n)-Math.PI/2;
+    const lx=cx+(r+14)*Math.cos(a), ly=cy+(r+14)*Math.sin(a);
+    ctx.font="12px sans-serif"; ctx.textAlign="center"; ctx.textBaseline="middle";
+    ctx.fillText(m.emoji,lx,ly);
+  });
+}
+
+// Override renderChart radar with the standalone version
+function renderChart() {
+  const container = document.getElementById("chartContent");
+  container.innerHTML = "";
+
+  const allEntries = [];
+  Object.keys(data).sort().forEach(dk => {
+    Object.keys(data[dk]).sort().forEach(h => {
+      allEntries.push({ dk, h, ...data[dk][h] });
+    });
+  });
+
+  if (allEntries.length < 2) {
+    container.innerHTML = `<div class="empty"><div class="empty-icon">📈</div><p>Butuh minimal 2 catatan<br>untuk melihat grafik tren.</p></div>`;
+    return;
+  }
+
+  const avg = key => (allEntries.reduce((s,e)=>s+e[key],0)/allEntries.length).toFixed(1);
+
+  const avgCard = document.createElement("div");
+  avgCard.className = "card";
+  avgCard.innerHTML = `
+    <div class="card-label">Rata-rata Keseluruhan · ${allEntries.length} catatan</div>
+    <div class="stat-row">
+      ${METRICS.map(m=>`
+        <div class="stat-item">
+          <div style="font-size:20px">${m.emoji}</div>
+          <div class="stat-val" style="color:${m.color}">${avg(m.key)}</div>
+          <div class="stat-lbl">${m.label}</div>
+        </div>`).join("")}
+    </div>`;
+  container.appendChild(avgCard);
+
+  METRICS.forEach(m => {
+    const card = document.createElement("div");
+    card.className = "sparkline-card";
+    const vals = allEntries.map(e=>e[m.key]);
+    const mn=Math.min(...vals), mx=Math.max(...vals);
+    card.innerHTML = `
+      <div class="sparkline-top">
+        <span class="sparkline-name">${m.emoji} ${m.label}</span>
+        <span class="sparkline-avg" style="color:${m.color}">${avg(m.key)}</span>
+      </div>
+      <canvas id="spark-${m.key}" height="36" style="width:100%;display:block"></canvas>
+      <div class="sparkline-minmax">
+        <span>Min: ${mn}</span><span>Max: ${mx}</span>
+      </div>`;
+    container.appendChild(card);
+    requestAnimationFrame(()=>drawSparkline(`spark-${m.key}`,vals,m.color));
+  });
+
+  const radarCard = document.createElement("div");
+  radarCard.className = "card";
+  radarCard.style.textAlign = "center";
+  radarCard.innerHTML = `
+    <div class="card-label">Profil Rata-rata</div>
+    <div style="display:flex;justify-content:center">
+      <canvas id="radarAvgChart" width="140" height="140"></canvas>
+    </div>`;
+  container.appendChild(radarCard);
+
+  requestAnimationFrame(()=>{
+    const avgVals = {};
+    METRICS.forEach(m => { avgVals[m.key] = parseFloat(avg(m.key)); });
+    drawRadarOnCanvas("radarAvgChart", avgVals);
+  });
+}
+</script>
+</body>
+</html>
